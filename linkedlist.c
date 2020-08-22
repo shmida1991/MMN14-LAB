@@ -24,9 +24,9 @@ typedef struct node
 } Node;
 
 Node* getlastnode(Node** head_ref)
-{printf("1\n");
+{
     Node* current = (*head_ref);
-    printf("1 %d\n", current->next);
+
     while (current->next != NULL)
     {
         current = current->next;
@@ -36,21 +36,25 @@ Node* getlastnode(Node** head_ref)
 
 void push(Node** head_ref, char *new_data, unsigned int address, char *type) 
 {
-    printf("1\n");
     Node* new_node = (Node*)malloc(sizeof(Node)); 
-    printf("2\n");
-    Node* last_node = getlastnode(head_ref);
-    printf("3\n");
+
     new_node->data  = malloc(sizeof(char*));
     new_node->type  = malloc(sizeof(char*));
-    printf("4\n");
     new_node->next = NULL; 
     new_node->address = address;
-  printf("5\n");
+    
     strcpy(new_node->data, new_data);
     strcpy(new_node->type, type);
-    printf("6\n");
-    last_node->next = new_node;
+
+    if ((*head_ref) == NULL)
+    {
+        *head_ref = new_node;
+    }
+    else 
+    {
+        Node* last_node = getlastnode(head_ref);
+        last_node->next = new_node;
+    }
 }
 
 void printList(Node *node) 
@@ -102,7 +106,7 @@ unsigned int getaddr(Node *head, char *val)
 
 typedef struct wordnode 
 { 
-    Word *word;
+    unsigned int word;
     WordNode *next; 
 } WordNode;
 
@@ -116,15 +120,25 @@ WordNode* getlastwordnode(WordNode** head_ref)
     return current;
 }
 
-void pushword(WordNode** head_ref, Word new_data) 
+void pushword(WordNode** head_ref, unsigned int new_data) 
 {
+    printf("1\n");
     WordNode* new_node = (WordNode*)malloc(sizeof(WordNode)); 
-    WordNode *last_node = getlastwordnode(head_ref);
-
-    new_node->word = malloc(sizeof(Word)); 
-    new_node->word = &new_data;
+printf("2\n");
+    new_node->word = new_data;
     new_node->next = NULL;
-    last_node->next = new_node;
+    printf("3\n");
+    if ((*head_ref) == NULL)
+    {
+        printf("4\n");
+        *head_ref = new_node;
+    }
+    else 
+    {
+        printf("5\n");
+        WordNode* last_node = getlastwordnode(head_ref);
+        last_node->next = new_node;
+    }
 } 
 
 void printword (WordNode *node)

@@ -14,6 +14,18 @@ typedef struct suppoertedcmd {
     unsigned int numofoper;
 } SupportedCommand;
 
+typedef struct word {
+    unsigned int E :1;
+    unsigned int R :1;
+    unsigned int A :1;
+    unsigned int funct :5;
+    unsigned int dst_reg :3;
+    unsigned int dst :2;
+    unsigned int src_reg :3;
+    unsigned int src :2;
+    unsigned int optcode :6;
+} Word;
+
 const SupportedCommand commands[NUMBER_OF_SUPPORTED_COMMANDS] = {
     {"move", 0, 0, 2},
     {"cmp", 0, 1, 2},
@@ -86,46 +98,9 @@ bool islegalopr(char *operand, bool islast, Node *labels)
     return false;
 }
 
-void handlecmd(char *command, Node *labels) 
+void handlecmd(char *commandstr, char *operands, Node *labels) 
 {
-    char *p;
-    p = strtok(command, " \t");
-    while(p != NULL)
-    {
-        SupportedCommand *command;
-        if ((command = getcmd(p)) != NULL)
-        {
-            int numofopr = (*command).numofoper;
-            if (numofopr == 0)
-            {
-                printf("Got not opr");
-            }
-            else if (numofopr == 1)
-            {
-                char * opr1 = strtok(NULL, " \t");
-                p = opr1;
-                if (islegalopr(opr1, true, labels))
-                {
-                    printf("Got 1 opr for %s\n", (*command).cmd);
-                }
-               
-            }
-            else if (numofopr == 2)
-            {
-                char * opr1 = strtok(NULL, " \t");
-                char * opr2 = strtok(NULL, " \t");
-                printf("opreands %s %s\n", opr1, opr2);
-                if (islegalopr(opr1, false, labels) && islegalopr(opr2, true, labels))
-                { 
-                    printf("Got 2 opr for %s\n", (*command).cmd);
-                }
-                p = opr2;
-            }
-            p = strtok(NULL, " \t");
-        }
-        else break;
-       // check for errors
-    }
+   printf("got command %s with %s", commandstr, operands);
 }
 
 void handlelbl(char *label, Node **labels, unsigned int address, char* type)
@@ -143,8 +118,8 @@ int main(int argc, char const *argv[])
 {
     int IC = 100, DC = 0;
     Node *labels = NULL;
-    Node *data = NULL;
-    Node *instructions = NULL;
+    WordNode **data = NULL;
+    WordNode *instructions = NULL;
     char line[80];
     int t;
 
@@ -169,6 +144,7 @@ int main(int argc, char const *argv[])
         }
         else if ((t = (int)(strcspn(line, ":"))) != strlen(line)) 
         {
+            printf("with label\n");
             haslabel = true;
             char *label = (char*)(malloc(t));
             char* restcommand =(char*)malloc(strlen(line) - t);
@@ -185,49 +161,88 @@ int main(int argc, char const *argv[])
                 char *storecmd = (char*)(malloc(strlen(restcommand)));
                 strcpy(storecmd, restcommand);
                 storecmd++;
-                if (strcmp(storecmd, "data") == 0 || strcmp(storecmd, "string") == 0)
+                if (strcmp(storecmd, "data") == 0)
                 {
                     handlelbl(label, &labels, (unsigned int)DC, "data");
-                    DC++;
-                    // handle data or string wit
+                    while(operand != NULL) // check if operand legal
+                    {
+                        unsigned int val = operand[0] == '-' ? (int)(0 - (unsigned int)(atoi(operand++))) : atoi(operand);
+                        pushword(data, val);
+                        DC++;
+                        operand = strtok(operand, " \t\n");
+                    }
+                }
+                else if (strcmp(storecmd, "string") == 0) 
+                {
+                    if (operand[0] == '"' && operand[strlen(operand) - 1] == '"')
+                    {
+                        for(int i = 0;  i < strlen(operand++) - 1; i++)
+                        {
+                            
+                            printf("%i\n",(unsigned int)(operand[i]));
+                            pushword(data, (unsigned int)(operand[i]));
+                            DC++;
+                        }
+                        DC++;
+                    }
                 }
                 else if (strcmp(storecmd, "extern") == 0)
                 {
-                    // add to symbols with label;
+                    handlelbl(operand, &labels, 0, "external");
                 }
                 else if (strcmp(storecmd, "entry") == 0)
                 {
-                    
+                    // write to entries file
                 } 
                 else
                 {
                     handlelbl(label, &labels, (unsigned int)IC, "opcode");
                     IC++;
-                    handlecmd(storecmd, labels);
+                    handlecmd(storecmd, operand, labels);
                 }
             }
             
         }
         else if (line[0] == '.') 
         {
+            printf("without label\n");
+            char * operand = strtok(NULL, " \t\n");
             char *storecmd = (char*)(malloc(strlen(line)));
             strcpy(storecmd, line);
             storecmd++;
-            if (strcmp(storecmd, "data") == 0 || strcmp(storecmd, "string"))
+            if (strcmp(storecmd, "data") == 0)
             {
-                // handle data or string wit
+                while(operand != NULL) // check if operand legal
+                {
+                    pushword(data, operand[0] == '-' ? (unsigned int)(0 - atoi(operand++)) : (unsigned int)(atoi(operand)));
+                    DC++;
+                    operand = strtok(operand, " \t\n");
+                }
+            }
+            else if (strcmp(storecmd, "string") == 0) 
+            {
+                if (operand[0] == '"' && operand[strlen(operand) - 1] == '"')
+                {
+                    for(int i = 0;  i < strlen(operand); i++)
+                    {
+                        pushword(data, (unsigned int)(operand[i]));
+                        DC++;
+                    }
+                    DC++;
+                }
             }
             else if (strcmp(storecmd, "extern") == 0)
             {
-                // add to symbols with label;
+                handlelbl(operand, &labels, 0, "external");
             }
             else if (strcmp(storecmd, "entry") == 0)
             {
-                
+                // write to entries file
             } 
             else
             {
-                handlecmd(storecmd, labels);
+                IC++;
+                handlecmd(storecmd, operand, labels);
             }
         }
     }

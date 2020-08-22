@@ -14,7 +14,7 @@ unsigned int getaddr(Node *head, char *val);
 typedef struct word Word;
 typedef struct wordnode WordNode;
 
-void pushword(WordNode** head_ref, Word new_data);
+void pushword(WordNode** head_ref, unsigned int new_data);
 void printwordlist(WordNode *node);
 void printword(WordNode *node);
 int wordlistlength(WordNode *head);
